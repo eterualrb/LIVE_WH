@@ -6,12 +6,17 @@ import android.view.SurfaceHolder;
 import java.io.IOException;
 
 import wh.whlive.params.VideoParmas;
+import wh.whlive.utils.LogUtil;
 
-public class VideoPusher extends Pusher implements SurfaceHolder.Callback {
+public class VideoPusher extends Pusher implements SurfaceHolder.Callback, Camera.PreviewCallback {
 
     private SurfaceHolder mSurfaceHolder;
     private VideoParmas mVideoParams;
+
     private Camera mCamera;
+    private byte[] mBuffers;
+
+    private boolean mIsPushing = false;
 
     public VideoPusher(SurfaceHolder holder, VideoParmas videoParams) {
         mSurfaceHolder = holder;
@@ -21,12 +26,12 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback {
 
     @Override
     public void startPush() {
-
+        mIsPushing = true;
     }
 
     @Override
     public void stopPush() {
-
+        mIsPushing = false;
     }
 
     @Override
@@ -49,6 +54,9 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback {
             // surfaceView初始化完成，开始相机预览
             mCamera = Camera.open(mVideoParams.getCameraId());
             mCamera.setPreviewDisplay(mSurfaceHolder);
+            mBuffers = new byte[mVideoParams.getWidth() * mVideoParams.getHeight() * 4]; // 设置图像数据缓冲区大小
+            mCamera.addCallbackBuffer(mBuffers); // 设置数据缓冲区回调后onPreviewFrame方法会回调
+            mCamera.setPreviewCallbackWithBuffer(this); // 获取预览图像数据
             mCamera.startPreview(); // 开始预览
         } catch (IOException e) {
             e.printStackTrace();
@@ -72,6 +80,18 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback {
 
         stopPreview();
         startPreview();
+    }
+
+    @Override
+    public void onPreviewFrame(byte[] bytes, Camera camera) {
+        LogUtil.d("onPreviewFrame");
+        if (mIsPushing) {
+            // 开始直播后，在回调方法中获取图像数据，传给native层进行编码
+            LogUtil.d("视频编码");
+        }
+
+        // 重新设置数据缓冲区回调，onPreviewFrame方法会不断回调，一帧回调一次
+        mCamera.addCallbackBuffer(mBuffers);
     }
 
 }

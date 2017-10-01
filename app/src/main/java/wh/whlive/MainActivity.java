@@ -28,7 +28,7 @@ public class MainActivity extends Activity {
      * @param view
      */
     public void onClickStartLive(View view) {
-
+        mLivePusher.startPush();
     }
 
     /**

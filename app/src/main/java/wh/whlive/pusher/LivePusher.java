@@ -23,8 +23,27 @@ public class LivePusher {
         mAudioPusher = new AudioPusher();
     }
 
+    /**
+     * 切换摄像头
+     */
     public void switchCamera() {
         mVideoPusher.switchCamera();
+    }
+
+    /**
+     * 开始直播
+     */
+    public void startPush() {
+        mVideoPusher.startPush();
+        mAudioPusher.startPush();
+    }
+
+    /**
+     * 停止直播
+     */
+    public void stopPush() {
+        mVideoPusher.stopPush();
+        mAudioPusher.stopPush();
     }
 
 }

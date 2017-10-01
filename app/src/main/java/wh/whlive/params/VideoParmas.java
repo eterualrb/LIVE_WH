@@ -2,8 +2,17 @@ package wh.whlive.params;
 
 public class VideoParmas {
 
+    /**
+     * 视频宽
+     */
     private int width;
+    /**
+     * 视频高
+     */
     private int height;
+    /**
+     * 前置or后置摄像头id
+     */
     private int cameraId;
 
     public VideoParmas(int width, int height, int cameraId) {
