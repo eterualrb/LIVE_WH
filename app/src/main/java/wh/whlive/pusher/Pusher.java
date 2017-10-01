@@ -6,4 +6,5 @@ public abstract class Pusher {
 
     public abstract void stopPush();
 
+    public abstract void release();
 }

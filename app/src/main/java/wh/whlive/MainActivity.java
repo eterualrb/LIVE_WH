@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.Button;
 
 import wh.whlive.pusher.LivePusher;
 
@@ -28,7 +29,14 @@ public class MainActivity extends Activity {
      * @param view
      */
     public void onClickStartLive(View view) {
-        mLivePusher.startPush();
+        Button btn = (Button) view;
+        if ("开始直播".equals(btn.getText().toString())) {
+            mLivePusher.startPush();
+            btn.setText("停止直播");
+        } else {
+            mLivePusher.stopPush();
+            btn.setText("开始直播");
+        }
     }
 
     /**

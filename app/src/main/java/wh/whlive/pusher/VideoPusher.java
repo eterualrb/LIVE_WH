@@ -35,6 +35,11 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback, Camer
     }
 
     @Override
+    public void release() {
+        stopPreview();
+    }
+
+    @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
         startPreview();
     }
@@ -46,7 +51,7 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback, Camer
 
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
-        stopPreview();
+
     }
 
     private void startPreview() {
@@ -90,8 +95,10 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback, Camer
             LogUtil.d("视频编码");
         }
 
-        // 重新设置数据缓冲区回调，onPreviewFrame方法会不断回调，一帧回调一次
-        mCamera.addCallbackBuffer(mBuffers);
+        if (null != mCamera) {
+            // 重新设置数据缓冲区回调，onPreviewFrame方法会不断回调，一帧回调一次
+            mCamera.addCallbackBuffer(mBuffers);
+        }
     }
 
 }
