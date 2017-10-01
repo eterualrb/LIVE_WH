@@ -30,6 +30,10 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback, Camer
 
     @Override
     public void startPush() {
+        // 设置视频参数
+        mPushNative.setVideoOptions(
+                mVideoParams.getWidth(), mVideoParams.getHeight(),
+                mVideoParams.getBitRate(), mVideoParams.getFps());
         mIsPushing = true;
     }
 
