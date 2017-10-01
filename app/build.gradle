@@ -3,19 +3,41 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 26
     buildToolsVersion "26.0.1"
+
     defaultConfig {
         applicationId "wh.whlive"
         minSdkVersion 15
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
+
+        externalNativeBuild {
+            cmake {
+                cppFlags ""
+                arguments '-DANDROID_TOOLCHAIN=clang', '-DANDROID_STL=gnustl_static'
+                abiFilters "armeabi"
+            }
+        }
     }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/jni/CMakeLists.txt"
+        }
+    }
+
+    sourceSets.main {
+        jni.srcDirs = ['src/main/jni']
+//        jniLibs.srcDirs = ['libs']
+    }
+
 }
 
 dependencies {

@@ -10,6 +10,11 @@ import wh.whlive.pusher.LivePusher;
 
 public class MainActivity extends Activity {
 
+    /**
+     * 推流地址
+     */
+    private String url = "rtmp://localhost:1935/liveA/room";
+
     private LivePusher mLivePusher;
 
     @Override
@@ -31,7 +36,7 @@ public class MainActivity extends Activity {
     public void onClickStartLive(View view) {
         Button btn = (Button) view;
         if ("开始直播".equals(btn.getText().toString())) {
-            mLivePusher.startPush();
+            mLivePusher.startPush(url);
             btn.setText("停止直播");
         } else {
             mLivePusher.stopPush();

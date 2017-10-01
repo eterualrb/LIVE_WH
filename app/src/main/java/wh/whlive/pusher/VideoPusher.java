@@ -5,6 +5,7 @@ import android.view.SurfaceHolder;
 
 import java.io.IOException;
 
+import wh.whlive.jni.PushNative;
 import wh.whlive.params.VideoParmas;
 import wh.whlive.utils.LogUtil;
 
@@ -12,15 +13,18 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback, Camer
 
     private SurfaceHolder mSurfaceHolder;
     private VideoParmas mVideoParams;
+    private PushNative mPushNative;
 
     private Camera mCamera;
     private byte[] mBuffers;
 
     private boolean mIsPushing = false;
 
-    public VideoPusher(SurfaceHolder holder, VideoParmas videoParams) {
+    public VideoPusher(SurfaceHolder holder, VideoParmas videoParams, PushNative pushNative) {
         mSurfaceHolder = holder;
         mVideoParams = videoParams;
+        mPushNative = pushNative;
+
         mSurfaceHolder.addCallback(this);
     }
 
@@ -93,6 +97,7 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback, Camer
         if (mIsPushing) {
             // 开始直播后，在回调方法中获取图像数据，传给native层进行编码
             LogUtil.d("视频编码");
+            mPushNative.fireVideo(bytes);
         }
 
         if (null != mCamera) {

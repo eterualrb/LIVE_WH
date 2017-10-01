@@ -4,20 +4,23 @@ import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 
+import wh.whlive.jni.PushNative;
 import wh.whlive.params.AudioParams;
 import wh.whlive.utils.LogUtil;
 
 public class AudioPusher extends Pusher {
 
     private AudioParams mAudioParams;
-    private AudioRecord mAudioRecord;
+    private PushNative mPushNative;
 
+    private AudioRecord mAudioRecord;
     private int mMinBufferSize;
 
     private boolean isPushing = false;
 
-    public AudioPusher(AudioParams params) {
+    public AudioPusher(AudioParams params, PushNative pushNative) {
         mAudioParams = params;
+        mPushNative = pushNative;
 
         int sampleRateInHz = mAudioParams.getSampleRateInHz();
         int channelConfig = mAudioParams.getChannel() == 1 ?
@@ -68,6 +71,7 @@ public class AudioPusher extends Pusher {
                 if (0 < length) {
                     // 读取到数据，传递到native层进行音频编码
                     LogUtil.d("音频编码");
+                    mPushNative.fireAudio(buffer, length);
                 }
             }
         }

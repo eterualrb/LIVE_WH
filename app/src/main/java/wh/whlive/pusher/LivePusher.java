@@ -3,6 +3,7 @@ package wh.whlive.pusher;
 import android.hardware.Camera;
 import android.view.SurfaceHolder;
 
+import wh.whlive.jni.PushNative;
 import wh.whlive.params.AudioParams;
 import wh.whlive.params.VideoParmas;
 
@@ -11,6 +12,7 @@ public class LivePusher implements SurfaceHolder.Callback {
     private SurfaceHolder mSurfaceHolder;
     private VideoPusher mVideoPusher;
     private AudioPusher mAudioPusher;
+    private PushNative mPushNative;
 
     public LivePusher(SurfaceHolder holder) {
         mSurfaceHolder = holder;
@@ -20,10 +22,12 @@ public class LivePusher implements SurfaceHolder.Callback {
 
     private void prepare() {
         // 初始化音视频推流器
+        mPushNative = new PushNative();
+
         VideoParmas videoParams = new VideoParmas(480, 320, Camera.CameraInfo.CAMERA_FACING_BACK);
-        mVideoPusher = new VideoPusher(mSurfaceHolder, videoParams);
+        mVideoPusher = new VideoPusher(mSurfaceHolder, videoParams, mPushNative);
         AudioParams audioParams = new AudioParams();
-        mAudioPusher = new AudioPusher(audioParams);
+        mAudioPusher = new AudioPusher(audioParams, mPushNative);
     }
 
     /**
@@ -36,9 +40,10 @@ public class LivePusher implements SurfaceHolder.Callback {
     /**
      * 开始直播
      */
-    public void startPush() {
+    public void startPush(String url) {
         mVideoPusher.startPush();
         mAudioPusher.startPush();
+        mPushNative.startPush(url);
     }
 
     /**
@@ -47,11 +52,13 @@ public class LivePusher implements SurfaceHolder.Callback {
     public void stopPush() {
         mVideoPusher.stopPush();
         mAudioPusher.stopPush();
+        mPushNative.stopPush();
     }
 
     private void release() {
         mVideoPusher.release();
         mAudioPusher.release();
+        mPushNative.release();
     }
 
     @Override
