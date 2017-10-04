@@ -36,6 +36,55 @@ char *g_rtmp_path;
 // 是否在直播
 int is_pushing = FALSE;
 
+// 音频编码处理器
+faacEncHandle g_audio_encode_handle;
+// 输入的采样个数
+unsigned long g_inputSamples;
+// 编码输出之后的字节数
+unsigned long g_maxOutputBytes;
+
+/**
+ * 加入RTMPPacket队列
+ * 等待发送线程发送
+ */
+void add_rtmp_packet(RTMPPacket *packet) {
+    pthread_mutex_lock(&g_mutex);
+    if (is_pushing) {
+        queue_append_last(packet);
+    }
+    pthread_cond_signal(&g_cond);
+    pthread_mutex_unlock(&g_mutex);
+}
+
+/**
+ * 添加AAC头信息
+ */
+void add_aac_sequence_header() {
+    // 获取aac头信息的长度
+    unsigned char *buf;
+    unsigned long len; // 头信息长度
+    faacEncGetDecoderSpecificInfo(g_audio_encode_handle, &buf, &len); // 获取编码的特殊信息
+    int body_size = 2 + len;
+    RTMPPacket *packet = malloc(sizeof(RTMPPacket));
+    // RTMPPacket初始化
+    RTMPPacket_Alloc(packet, body_size);
+    RTMPPacket_Reset(packet);
+    unsigned char *body = packet->m_body;
+    // 头信息配置
+    // AF 00 + AAC RAW data
+    body[0] = 0xAF; // 10 5 SoundFormat(4bits):10=AAC,SoundRate(2bits):3=44kHz,SoundSize(1bit):1=16-bit samples,SoundType(1bit):1=Stereo sound
+    body[1] = 0x00; // AACPacketType:0表示AAC sequence header
+    memcpy(&body[2], buf, len); // spec_buf是AAC sequence header数据
+    packet->m_packetType = RTMP_PACKET_TYPE_AUDIO;
+    packet->m_nBodySize = body_size;
+    packet->m_nChannel = 0x04;
+    packet->m_hasAbsTimestamp = 0;
+    packet->m_nTimeStamp = 0;
+    packet->m_headerType = RTMP_PACKET_SIZE_MEDIUM;
+    add_rtmp_packet(packet);
+    free(buf);
+}
+
 /**
  * 从队列中不断拉取RTMPPacket发送给流媒体服务器）
  */
@@ -62,7 +111,11 @@ void *push_thread(void *arg) {
     if (!RTMP_ConnectStream(rtmp, 0)) { // 连接流
         goto end;
     }
+
     is_pushing = TRUE;
+    //发送AAC头信息
+    add_aac_sequence_header();
+
     while (is_pushing) {
         // 发送
         pthread_mutex_lock(&g_mutex);
@@ -225,30 +278,42 @@ Java_wh_whlive_jni_PushNative_setVideoOptions(JNIEnv *env, jobject instance, jin
      * 打开编码器
      */
     g_video_encode_handle = x264_encoder_open(&param);
-    if (g_video_encode_handle) {
-        LOGI("打开编码器成功...");
+    if (!g_video_encode_handle) {
+        LOGI("视频编码器打开失败...");
+        return;
     }
-}
-
-JNIEXPORT void JNICALL
-Java_wh_whlive_jni_PushNative_setAudioOptions(JNIEnv *env, jobject instance, jint sampleRatInHz,
-                                              jint channel) {
-
-    // TODO
-
 }
 
 /**
- * 加入RTMPPacket队列
- * 等待发送线程发送
+ * 设置音频参数
  */
-void add_rtmp_packet(RTMPPacket *packet) {
-    pthread_mutex_lock(&g_mutex);
-    if (is_pushing) {
-        queue_append_last(packet);
+JNIEXPORT void JNICALL
+Java_wh_whlive_jni_PushNative_setAudioOptions(JNIEnv *env, jobject instance, jint sampleRatInHz,
+                                              jint channel) {
+    g_audio_encode_handle = faacEncOpen(sampleRatInHz, channel, &g_inputSamples, &g_maxOutputBytes);
+    if (!g_audio_encode_handle) {
+        LOGE("音频编码器打开失败...");
+        return;
     }
-    pthread_cond_signal(&g_cond);
-    pthread_mutex_unlock(&g_mutex);
+
+    // 设置音频编码参数
+    faacEncConfigurationPtr p_config = faacEncGetCurrentConfiguration(g_audio_encode_handle);
+    p_config->mpegVersion = MPEG4;
+    p_config->allowMidside = 1;
+    p_config->aacObjectType = LOW;
+    p_config->outputFormat = 0; // 输出是否包含ADTS头
+    p_config->useTns = 1; // 时域噪音控制,大概就是消爆音
+    p_config->useLfe = 0;
+//	p_config->inputFormat = FAAC_INPUT_16BIT;
+    p_config->quantqual = 100;
+    p_config->bandWidth = 0; // 频宽
+    p_config->shortctl = SHORTCTL_NORMAL;
+    if (!faacEncSetConfiguration(g_audio_encode_handle, p_config)) {
+        LOGE("音频编码器配置失败...");
+        return;
+    }
+
+    LOGI("音频编码器配置成功...");
 }
 
 /**
@@ -420,11 +485,73 @@ Java_wh_whlive_jni_PushNative_fireVideo(JNIEnv *env, jobject instance, jbyteArra
     (*env)->ReleaseByteArrayElements(env, data_, nv21_buffer, 0);
 }
 
+/**
+ * 添加AAC rtmp packet
+ */
+void add_aac_body(unsigned char *buf, int len) {
+    int body_size = 2 + len;
+    RTMPPacket *packet = malloc(sizeof(RTMPPacket));
+    //RTMPPacket初始化
+    RTMPPacket_Alloc(packet, body_size);
+    RTMPPacket_Reset(packet);
+    unsigned char *body = packet->m_body;
+    //头信息配置
+    /*AF 00 + AAC RAW data*/
+    body[0] = 0xAF;//10 5 SoundFormat(4bits):10=AAC,SoundRate(2bits):3=44kHz,SoundSize(1bit):1=16-bit samples,SoundType(1bit):1=Stereo sound
+    body[1] = 0x01;//AACPacketType:1表示AAC raw
+    memcpy(&body[2], buf, len); /*spec_buf是AAC raw数据*/
+    packet->m_packetType = RTMP_PACKET_TYPE_AUDIO;
+    packet->m_nBodySize = body_size;
+    packet->m_nChannel = 0x04;
+    packet->m_hasAbsTimestamp = 0;
+    packet->m_headerType = RTMP_PACKET_SIZE_LARGE;
+    packet->m_nTimeStamp = RTMP_GetTime() - start_time;
+    add_rtmp_packet(packet);
+}
+
+/**
+ * 对音频采样数据进行AAC编码
+ */
 JNIEXPORT void JNICALL
 Java_wh_whlive_jni_PushNative_fireAudio(JNIEnv *env, jobject instance, jbyteArray data_, jint len) {
-    jbyte *data = (*env)->GetByteArrayElements(env, data_, NULL);
+    jbyte *b_buffer = (*env)->GetByteArrayElements(env, data_, NULL);
 
-    // TODO
+    int *pcmbuf;
+    unsigned char *bitbuf;
+    pcmbuf = (short *) malloc(g_inputSamples * sizeof(int));
+    bitbuf = (unsigned char *) malloc(g_maxOutputBytes * sizeof(unsigned char));
+    int nByteCount = 0;
+    unsigned int nBufferSize = (unsigned int) len / 2;
+    unsigned short *buf = (unsigned short *) b_buffer;
+    while (nByteCount < nBufferSize) {
+        int audioLength = g_inputSamples;
+        if ((nByteCount + g_inputSamples) >= nBufferSize) {
+            audioLength = nBufferSize - nByteCount;
+        }
+        int i;
+        for (i = 0; i < audioLength; i++) {//每次从实时的pcm音频队列中读出量化位数为8的pcm数据。
+            int s = ((int16_t *) buf + nByteCount)[i];
+            pcmbuf[i] = s << 8;//用8个二进制位来表示一个采样量化点（模数转换）
+        }
+        nByteCount += g_inputSamples;
+        //利用FAAC进行编码，pcmbuf为转换后的pcm流数据，audioLength为调用faacEncOpen时得到的输入采样数，bitbuf为编码后的数据buff，nMaxOutputBytes为调用faacEncOpen时得到的最大输出字节数
+        int byteslen = faacEncEncode(g_audio_encode_handle,
+                                     pcmbuf,
+                                     audioLength,
+                                     bitbuf,
+                                     g_maxOutputBytes);
+        if (byteslen < 1) {
+            continue;
+        }
+        add_aac_body(bitbuf, byteslen);//从bitbuf中得到编码后的aac数据流，放到数据队列
+    }
+    (*env)->ReleaseByteArrayElements(env, data_, b_buffer, NULL);
+    if (bitbuf) {
+        free(bitbuf);
+    }
+    if (pcmbuf) {
+        free(pcmbuf);
+    }
 
-    (*env)->ReleaseByteArrayElements(env, data_, data, 0);
+    (*env)->ReleaseByteArrayElements(env, data_, b_buffer, 0);
 }
