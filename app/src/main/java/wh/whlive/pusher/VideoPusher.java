@@ -1,5 +1,6 @@
 package wh.whlive.pusher;
 
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.view.SurfaceHolder;
 
@@ -66,6 +67,11 @@ public class VideoPusher extends Pusher implements SurfaceHolder.Callback, Camer
         try {
             // surfaceView初始化完成，开始相机预览
             mCamera = Camera.open(mVideoParams.getCameraId());
+            Camera.Parameters parameters = mCamera.getParameters();
+            parameters.setPreviewFormat(ImageFormat.NV21); // 设置预览图像的像素格式
+            parameters.setPreviewSize(mVideoParams.getWidth(), mVideoParams.getHeight()); // 设置预览图像的宽高
+            mCamera.setParameters(parameters);
+//            mCamera.setDisplayOrientation(90);
             mCamera.setPreviewDisplay(mSurfaceHolder);
             mBuffers = new byte[mVideoParams.getWidth() * mVideoParams.getHeight() * 4]; // 设置图像数据缓冲区大小
             mCamera.addCallbackBuffer(mBuffers); // 设置数据缓冲区回调后onPreviewFrame方法会回调

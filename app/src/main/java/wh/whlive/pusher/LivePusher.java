@@ -24,7 +24,8 @@ public class LivePusher implements SurfaceHolder.Callback {
         // 初始化音视频推流器
         mPushNative = new PushNative();
 
-        VideoParmas videoParams = new VideoParmas(480, 320, Camera.CameraInfo.CAMERA_FACING_BACK);
+        // 测试手机oppo r7 屏幕尺寸1920x1080
+        VideoParmas videoParams = new VideoParmas(1920, 1080, Camera.CameraInfo.CAMERA_FACING_BACK);
         mVideoPusher = new VideoPusher(mSurfaceHolder, videoParams, mPushNative);
         AudioParams audioParams = new AudioParams();
         mAudioPusher = new AudioPusher(audioParams, mPushNative);

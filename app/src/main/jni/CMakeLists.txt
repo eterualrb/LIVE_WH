@@ -27,12 +27,14 @@ set_target_properties( x264
                        ${static_lib_DIR}/libx264.a )
 
 include_directories( ${CMAKE_SOURCE_DIR}/include/faac
+                     ${CMAKE_SOURCE_DIR}/include/queue
                      ${CMAKE_SOURCE_DIR}/include/rtmp
                      ${CMAKE_SOURCE_DIR}/include/x264 )
 
 add_library( wh-live
              SHARED
-             pushnative.c )
+             pushnative.c
+             queue.c )
 
 target_link_libraries( wh-live
                        faac
