@@ -464,6 +464,7 @@ Java_wh_whlive_jni_PushNative_fireVideo(JNIEnv *env, jobject instance, jbyteArra
 
     // 遍历NALU数组，根据NALU的类型判断
     for (i = 0; i < n_nal; i++) {
+        // 在x264中，一般sps和pps的分隔符是4个字节:00 00 00 01，普通的分隔符是3个字节:00 00 01
         if (nal[i].i_type == NAL_SPS) {
             // 复制SPS数据
             sps_len = nal[i].i_payload - 4;
@@ -472,7 +473,6 @@ Java_wh_whlive_jni_PushNative_fireVideo(JNIEnv *env, jobject instance, jbyteArra
             // 复制PPS数据
             pps_len = nal[i].i_payload - 4;
             memcpy(pps, nal[i].p_payload + 4, pps_len); // +4 不复制四字节起始码
-
             // 发送序列信息
             // h264关键帧会包含SPS和PPS数据
             add_264_sequence_header(pps, sps, pps_len, sps_len);
