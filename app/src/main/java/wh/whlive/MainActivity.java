@@ -13,7 +13,8 @@ public class MainActivity extends Activity {
     /**
      * 推流地址
      */
-    private String url = "rtmp://192.168.1.105:1935/liveA/room";
+//    private String url = "rtmp://192.168.1.105:1935/liveA/room";
+    private String url = "rtmp://172.16.71.52:1935/liveA/room";
 
     private LivePusher mLivePusher;
 

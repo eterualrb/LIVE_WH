@@ -80,7 +80,7 @@ void add_aac_sequence_header() {
     packet->m_nChannel = 0x04;
     packet->m_hasAbsTimestamp = 0;
     packet->m_nTimeStamp = 0;
-    packet->m_headerType = RTMP_PACKET_SIZE_MEDIUM;
+    packet->m_headerType = RTMP_PACKET_SIZE_LARGE;
     add_rtmp_packet(packet);
     free(buf);
 }
@@ -367,7 +367,7 @@ void add_264_sequence_header(unsigned char *pps, unsigned char *sps, int pps_len
     packet->m_nTimeStamp = 0;
     packet->m_hasAbsTimestamp = 0;
     packet->m_nChannel = 0x04; // Channel ID，Audio和Vidio通道
-    packet->m_headerType = RTMP_PACKET_SIZE_MEDIUM;
+    packet->m_headerType = RTMP_PACKET_SIZE_LARGE;
     // 将RTMPPacket加入队列
     add_rtmp_packet(packet);
 }
@@ -418,7 +418,7 @@ void add_264_body(unsigned char *buf, int len) {
     packet->m_nBodySize = body_size;
     packet->m_packetType = RTMP_PACKET_TYPE_VIDEO; // 当前packet的类型：Video
     packet->m_nChannel = 0x04;
-    packet->m_headerType = RTMP_PACKET_SIZE_LARGE;
+    packet->m_headerType = RTMP_PACKET_SIZE_MEDIUM;
     packet->m_nTimeStamp = RTMP_GetTime() - start_time; // 记录了每一个tag相对于第一个tag（File Header）的相对时间
     add_rtmp_packet(packet);
 }
@@ -504,7 +504,7 @@ void add_aac_body(unsigned char *buf, int len) {
     packet->m_nBodySize = body_size;
     packet->m_nChannel = 0x04;
     packet->m_hasAbsTimestamp = 0;
-    packet->m_headerType = RTMP_PACKET_SIZE_LARGE;
+    packet->m_headerType = RTMP_PACKET_SIZE_MEDIUM;
     packet->m_nTimeStamp = RTMP_GetTime() - start_time;
     add_rtmp_packet(packet);
 }
